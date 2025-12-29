@@ -1,0 +1,176 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  deviceId     String    @unique @map("device_id") @db.VarChar(255)
+  anonymousId  String?   @map("anonymous_id") @db.VarChar(255)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+  lastActiveAt DateTime? @map("last_active_at") @db.Timestamptz(6)
+
+  // Relations
+  settings      UserSettings?
+  notifications NotificationLog[]
+  feedbacks     Feedback[]
+  mlModels      UserMlModel[]
+
+  @@index([deviceId])
+  @@index([deletedAt])
+  @@index([lastActiveAt])
+  @@map("users")
+}
+
+model UserSettings {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  departureTime       String   @map("departure_time") @db.VarChar(8) // HH:mm:ss format
+  notificationTime    String   @map("notification_time") @db.VarChar(8) // HH:mm:ss format
+  locationLatitude    Decimal? @map("location_latitude") @db.Decimal(10, 8)
+  locationLongitude   Decimal? @map("location_longitude") @db.Decimal(11, 8)
+  locationName        String?  @map("location_name") @db.VarChar(255)
+  fcmToken            String?  @map("fcm_token") @db.VarChar(500)
+  notificationEnabled Boolean  @default(true) @map("notification_enabled")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([notificationTime])
+  @@index([locationLatitude, locationLongitude])
+  @@map("user_settings")
+}
+
+model WeatherData {
+  id                       String   @id @default(uuid()) @db.Uuid
+  locationLatitude         Decimal  @map("location_latitude") @db.Decimal(10, 8)
+  locationLongitude        Decimal  @map("location_longitude") @db.Decimal(11, 8)
+  forecastDate             DateTime @map("forecast_date") @db.Date
+  forecastTime             String   @map("forecast_time") @db.VarChar(8) // HH:mm:ss format
+  temperature              Decimal? @db.Decimal(5, 2)
+  humidity                 Int?
+  precipitationProbability Int?     @map("precipitation_probability")
+  precipitationAmount      Decimal? @map("precipitation_amount") @db.Decimal(5, 2)
+  windSpeed                Decimal? @map("wind_speed") @db.Decimal(5, 2)
+  windDirection            Int?     @map("wind_direction")
+  skyCondition             String?  @map("sky_condition") @db.VarChar(50)
+  uvIndex                  Int?     @map("uv_index")
+  weatherData              Json?    @map("weather_data") // 원본 API 응답 데이터
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  notifications NotificationLog[]
+
+  @@unique([locationLatitude, locationLongitude, forecastDate, forecastTime])
+  @@index([locationLatitude, locationLongitude])
+  @@index([forecastDate, forecastTime])
+  @@index([createdAt])
+  @@map("weather_data")
+}
+
+model NotificationLog {
+  id               String             @id @default(uuid()) @db.Uuid
+  userId           String             @map("user_id") @db.Uuid
+  notificationType String             @map("notification_type") @db.VarChar(50)
+  title            String             @db.VarChar(255)
+  body             String             @db.Text
+  recommendation   Json? // 추천 내용 (옷차림, 소지품 등)
+  weatherDataId    String?            @map("weather_data_id") @db.Uuid
+  sentAt           DateTime           @default(now()) @map("sent_at") @db.Timestamptz(6)
+  status           NotificationStatus @default(PENDING)
+  errorMessage     String?            @map("error_message") @db.Text
+  feedbackReceived Boolean            @default(false) @map("feedback_received")
+
+  // Relations
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weatherData WeatherData? @relation(fields: [weatherDataId], references: [id])
+  feedback    Feedback?
+
+  @@index([userId])
+  @@index([sentAt])
+  @@index([status])
+  @@index([feedbackReceived])
+  @@map("notification_logs")
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+
+  @@map("notification_status")
+}
+
+model Feedback {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  notificationLogId String   @unique @map("notification_log_id") @db.Uuid
+  rating            Int // 1~5점
+  feedbackText      String?  @map("feedback_text") @db.Text // 최대 500자
+  nlpAnalysis       Json?    @map("nlp_analysis") // NLP 분석 결과
+  feedbackDate      DateTime @map("feedback_date") @db.Date
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationLog NotificationLog @relation(fields: [notificationLogId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([notificationLogId])
+  @@index([rating])
+  @@index([feedbackDate])
+  @@index([createdAt])
+  @@map("feedbacks")
+}
+
+model UserMlModel {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  modelType     String   @map("model_type") @db.VarChar(50) // linear_regression, random_forest, neural_network
+  modelVersion  Int      @default(1) @map("model_version")
+  parameters    Json // 학습된 모델 파라미터
+  feedbackCount Int      @default(0) @map("feedback_count")
+  accuracyScore Decimal? @map("accuracy_score") @db.Decimal(5, 4) // 0~1
+  trainedAt     DateTime @default(now()) @map("trained_at") @db.Timestamptz(6)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, modelType, modelVersion])
+  @@index([userId])
+  @@index([modelType])
+  @@index([feedbackCount])
+  @@map("user_ml_models")
+}
+
+model RecommendationRule {
+  id                  String   @id @default(uuid()) @db.Uuid
+  conditionType       String   @map("condition_type") @db.VarChar(50) // temperature, precipitation, wind_speed, uv_index 등
+  conditionOperator   String   @map("condition_operator") @db.VarChar(20) // >, <, >=, <=, =, between
+  conditionValue      Json     @map("condition_value") // 조건 값
+  recommendationType  String   @map("recommendation_type") @db.VarChar(50) // item, clothing
+  recommendationValue Json     @map("recommendation_value") // 추천 값
+  priority            Int      @default(0)
+  enabled             Boolean  @default(true)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([conditionType])
+  @@index([enabled, priority])
+  @@map("recommendation_rules")
+}
