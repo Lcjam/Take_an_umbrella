@@ -1,0 +1,16 @@
+version: '3.8'
+
+# Development environment override
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+    # Enable PostgreSQL logs in development
+    command: postgres -c log_statement=all -c log_destination=stderr
+
+  redis:
+    ports:
+      - "6379:6379"
+
