@@ -44,6 +44,3 @@ Thumbs.db
 docs
 md
 
-# Prisma
-backend/prisma/migrations
-

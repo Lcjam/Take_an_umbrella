@@ -1,12 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import dotenv from 'dotenv';
 
-// 환경 변수 로드
-dotenv.config();
-
-// DATABASE_URL 확인
+// DATABASE_URL 확인 (환경 변수는 최상위 진입점에서 로드됨)
 if (!process.env.DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is not set');
 }

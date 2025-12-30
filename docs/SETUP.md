@@ -37,8 +37,8 @@ npm install
 Create a `.env` file in the `backend/` directory:
 
 ```bash
-cd backend
-cp .env.example .env  # if .env.example exists
+# Project root에서 .env 파일 생성
+cp .env.example .env
 # or create .env manually
 ```
 
@@ -211,7 +211,7 @@ flutter doctor
 
 ```bash
 # Navigate to project root
-cd /Users/jamie/Desktop/Project/Take_an_umbrella
+cd <project_root>
 
 # Create Flutter project
 flutter create frontend
