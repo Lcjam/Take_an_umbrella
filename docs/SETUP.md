@@ -34,34 +34,44 @@ npm install
 
 ### 2. Environment Variables
 
-Create a `.env` file in the `backend/` directory:
+Create a `.env` file in the **project root** directory (not in `backend/`):
 
 ```bash
-# Project root에서 .env 파일 생성
+# Project root에서 실행
 cp .env.example .env
 # or create .env manually
 ```
 
 **Required Environment Variables:**
 
+프로젝트 루트의 `.env` 파일에 다음 변수들을 설정하세요:
+
 ```env
-# Server Configuration
+# Docker Compose Environment Variables
+POSTGRES_USER=take_umbrella_user
+POSTGRES_PASSWORD=take_umbrella_password
+POSTGRES_DB=take_an_umbrella
+
+# Backend Environment Variables
 PORT=3000
 NODE_ENV=development
-
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/take_an_umbrella?schema=public
+DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}?schema=public
 
 # Weather API (기상청 API)
 WEATHER_API_KEY=your_weather_api_key_here
 WEATHER_API_URL=https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0
 
 # JWT (for future use)
-JWT_SECRET=your_jwt_secret_here
+JWT_SECRET=your_jwt_secret_here_change_in_production
 
 # FCM (Firebase Cloud Messaging)
 FCM_SERVER_KEY=your_fcm_server_key_here
+
+# Redis (optional, for caching)
+REDIS_URL=redis://localhost:6379
 ```
+
+**Note**: `.env.example` 파일을 복사하여 `.env` 파일을 생성하고, 실제 값으로 수정하세요. Docker Compose는 프로젝트 루트의 `.env` 파일을 자동으로 사용합니다.
 
 **How to get API keys:**
 
@@ -131,16 +141,18 @@ docker-compose logs -f postgres
 ./scripts/test-docker-compose.sh
 ```
 
-2. **Create `.env` file** in `backend/` directory:
+2. **Create `.env` file** in **project root** directory:
 
 Copy the example file and update with your values:
 
 ```bash
-cd backend
+# Project root에서 실행
 cp .env.example .env
 ```
 
-The `.env.example` file already contains the correct DATABASE_URL for Docker Compose. You only need to update API keys and secrets.
+The `.env.example` file already contains the correct environment variables for Docker Compose. You only need to update API keys and secrets.
+
+**Important**: Docker Compose will use the `.env` file from the project root automatically.
 
 ### 4. Database Migration
 
