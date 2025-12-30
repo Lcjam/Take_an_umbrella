@@ -38,7 +38,7 @@ model UserSettings {
   locationLatitude    Decimal? @map("location_latitude") @db.Decimal(10, 8)
   locationLongitude   Decimal? @map("location_longitude") @db.Decimal(11, 8)
   locationName        String?  @map("location_name") @db.VarChar(255)
-  fcmToken            String?  @map("fcm_token") @db.VarChar(500)
+  fcmToken            String?  @map("fcm_token") @db.Text
   notificationEnabled Boolean  @default(true) @map("notification_enabled")
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
