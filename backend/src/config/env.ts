@@ -13,4 +13,3 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || '',
   fcmServerKey: process.env.FCM_SERVER_KEY || '',
 };
-

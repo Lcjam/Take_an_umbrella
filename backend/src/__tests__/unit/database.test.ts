@@ -16,6 +16,7 @@ describe('Database Connection', () => {
     // 테스트 후 Prisma 연결 종료
     await prisma.$disconnect();
     // Pool 연결도 종료
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const pool = (prisma as any).$adapter?.pool;
     if (pool) {
       await pool.end();
@@ -37,8 +38,8 @@ describe('Database Connection', () => {
       ORDER BY tablename
     `;
 
-    const tableNames = tables.map((t) => t.tablename);
-    
+    const tableNames = tables.map((t: { tablename: string }) => t.tablename);
+
     // 필수 테이블 확인
     expect(tableNames).toContain('users');
     expect(tableNames).toContain('user_settings');
@@ -49,4 +50,3 @@ describe('Database Connection', () => {
     expect(tableNames).toContain('recommendation_rules');
   });
 });
-
