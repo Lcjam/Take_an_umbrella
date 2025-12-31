@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import { errorHandler } from './middlewares/error-handler';
 
 // 프로젝트 루트의 .env 파일 로드 (backend 디렉토리에서 실행해도 루트의 .env 사용)
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -18,6 +19,9 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 // Start server only if not in test environment
 if (process.env.NODE_ENV !== 'test') {
