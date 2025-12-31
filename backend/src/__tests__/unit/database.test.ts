@@ -38,7 +38,7 @@ describe('Database Connection', () => {
       ORDER BY tablename
     `;
 
-    const tableNames = tables.map(t => t.tablename);
+    const tableNames = tables.map((t: { tablename: string }) => t.tablename);
 
     // 필수 테이블 확인
     expect(tableNames).toContain('users');
