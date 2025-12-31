@@ -54,6 +54,11 @@ jobs:
         run: npm run lint
         working-directory: backend
 
+      - name: Generate Prisma Client
+        # Generate Prisma Client before running migrations
+        run: npx prisma generate
+        working-directory: backend
+
       - name: Run Migrations
         # Deploy migrations to the test database
         run: npx prisma migrate deploy
