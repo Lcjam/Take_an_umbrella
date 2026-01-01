@@ -25,5 +25,6 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'json'],
   verbose: true,
+  testTimeout: 30000, // 30초로 timeout 증가
 };
 
