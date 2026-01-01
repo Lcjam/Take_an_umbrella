@@ -17,41 +17,61 @@ export interface User {
 class UserService {
   /**
    * 사용자를 생성하거나 기존 사용자를 조회합니다
+   * 트랜잭션을 사용하여 원자성을 보장하고 race condition을 방지합니다
    * @param input - 사용자 생성 입력 데이터
    * @returns 생성되거나 조회된 사용자 정보와 생성 여부
    */
   async createOrGetUser(input: CreateUserInput): Promise<{ user: User; created: boolean }> {
-    // 기존 사용자 조회
-    const existingUser = await prisma.user.findUnique({
-      where: { deviceId: input.deviceId },
-    });
+    return await prisma.$transaction(async tx => {
+      // 트랜잭션 내에서 사용자 조회 (락 획득)
+      const existingUser = await tx.user.findUnique({
+        where: { deviceId: input.deviceId },
+      });
 
-    if (existingUser && !existingUser.deletedAt) {
-      // 마지막 활동 시간 업데이트
-      const updatedUser = await prisma.user.update({
-        where: { id: existingUser.id },
-        data: { lastActiveAt: new Date() },
+      // 활성 사용자가 존재하면 마지막 활동 시간만 업데이트
+      if (existingUser && !existingUser.deletedAt) {
+        const updatedUser = await tx.user.update({
+          where: { id: existingUser.id },
+          data: { lastActiveAt: new Date() },
+        });
+
+        return {
+          user: this.mapToUser(updatedUser),
+          created: false,
+        };
+      }
+
+      // 소프트 삭제된 사용자가 존재하면 복원
+      if (existingUser && existingUser.deletedAt) {
+        const restoredUser = await tx.user.update({
+          where: { id: existingUser.id },
+          data: {
+            deletedAt: null,
+            anonymousId: input.anonymousId || existingUser.anonymousId,
+            lastActiveAt: new Date(),
+          },
+        });
+
+        return {
+          user: this.mapToUser(restoredUser),
+          created: true, // 복원을 새 생성으로 간주
+        };
+      }
+
+      // 사용자가 없으면 새로 생성
+      const newUser = await tx.user.create({
+        data: {
+          deviceId: input.deviceId,
+          anonymousId: input.anonymousId || null,
+          lastActiveAt: new Date(),
+        },
       });
 
       return {
-        user: this.mapToUser(updatedUser),
-        created: false,
+        user: this.mapToUser(newUser),
+        created: true,
       };
-    }
-
-    // 새 사용자 생성
-    const newUser = await prisma.user.create({
-      data: {
-        deviceId: input.deviceId,
-        anonymousId: input.anonymousId || null,
-        lastActiveAt: new Date(),
-      },
     });
-
-    return {
-      user: this.mapToUser(newUser),
-      created: true,
-    };
   }
 
   /**
