@@ -14,7 +14,7 @@ module.exports = {
     '!src/**/*.spec.ts',
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
+  coverageReporters: ['text', 'lcov', 'html', 'cobertura'],
   coverageThreshold: {
     global: {
       branches: 85,
