@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError, ErrorResponse } from '../types/errors';
+import { logger } from '../utils/logger';
 
 /**
  * 에러 핸들링 미들웨어
@@ -18,14 +19,14 @@ export const errorHandler = (
 ): void => {
   // 에러 로깅 (개발/테스트 환경에서는 상세하게, 프로덕션에서는 간략하게)
   if (process.env.NODE_ENV !== 'production') {
-    console.error('Error occurred:', {
+    logger.error('Error occurred:', {
       name: error.name,
       message: error.message,
       stack: error.stack,
       ...(error instanceof AppError && { code: error.code }),
     });
   } else {
-    console.error('Error occurred:', error.message);
+    logger.error('Error occurred:', { message: error.message });
   }
 
   // AppError인 경우 - 정의된 에러

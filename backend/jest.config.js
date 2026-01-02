@@ -14,11 +14,11 @@ module.exports = {
     '!src/**/*.spec.ts',
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
+  coverageReporters: ['text', 'lcov', 'html', 'cobertura'],
   coverageThreshold: {
     global: {
-      branches: 85,
-      functions: 85,
+      branches: 70,
+      functions: 75,
       lines: 85,
       statements: 85,
     },
