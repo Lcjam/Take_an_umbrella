@@ -17,23 +17,26 @@ const consoleFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.printf(({ timestamp, level, message, ...metadata }) => {
     let msg = `${timestamp} [${level}]: ${message}`;
-    
+
     // 메타데이터가 있으면 추가
     const metaKeys = Object.keys(metadata);
     if (metaKeys.length > 0) {
       // timestamp와 level을 제외한 나머지 메타데이터만 출력
       const filteredMeta = Object.keys(metadata)
         .filter(key => !['timestamp', 'level', 'message'].includes(key))
-        .reduce((obj, key) => {
-          obj[key] = metadata[key];
-          return obj;
-        }, {} as Record<string, unknown>);
-      
+        .reduce(
+          (obj, key) => {
+            obj[key] = metadata[key];
+            return obj;
+          },
+          {} as Record<string, unknown>
+        );
+
       if (Object.keys(filteredMeta).length > 0) {
         msg += ` ${JSON.stringify(filteredMeta, null, 2)}`;
       }
     }
-    
+
     return msg;
   })
 );
@@ -55,7 +58,7 @@ if (config.nodeEnv !== 'production') {
       format: logFormat,
     })
   );
-  
+
   // 프로덕션에서는 파일에도 기록 (선택사항)
   // transports.push(
   //   new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
@@ -86,4 +89,3 @@ export const logger = winston.createLogger({
 if (config.nodeEnv === 'test') {
   logger.silent = true;
 }
-

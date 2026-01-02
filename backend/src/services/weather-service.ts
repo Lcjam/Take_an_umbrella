@@ -1,12 +1,7 @@
 import axios from 'axios';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
-import {
-  WeatherData,
-  GridCoordinate,
-  KmaApiResponse,
-  KmaApiItem,
-} from '../types/weather';
+import { WeatherData, GridCoordinate, KmaApiResponse, KmaApiItem } from '../types/weather';
 import { ExternalApiError } from '../types/errors';
 
 /**
@@ -28,7 +23,8 @@ export class WeatherService {
   private readonly YO = 136; // 기준점 Y좌표(GRID)
 
   constructor() {
-    this.API_BASE_URL = config.weatherApiUrl || 'http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0';
+    this.API_BASE_URL =
+      config.weatherApiUrl || 'http://apis.data.go.kr/1360000/VilageFcstInfoService_2.0';
     this.API_KEY = config.weatherApiKey;
 
     if (!this.API_KEY) {
@@ -138,7 +134,7 @@ export class WeatherService {
   private parseWeatherData(items: KmaApiItem[]): WeatherData {
     const dataMap: { [key: string]: string } = {};
 
-    items.forEach((item) => {
+    items.forEach(item => {
       dataMap[item.category] = item.fcstValue;
     });
 
@@ -213,4 +209,3 @@ export class WeatherService {
     return String(adjustedHour).padStart(2, '0') + '30';
   }
 }
-

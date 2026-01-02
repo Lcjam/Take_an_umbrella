@@ -25,7 +25,7 @@ describe('WeatherService', () => {
     test('위경도를 격자 좌표로 변환할 수 있어야 함', () => {
       // 서울 시청 좌표
       const latitude = 37.5665;
-      const longitude = 126.9780;
+      const longitude = 126.978;
 
       const grid: GridCoordinate = weatherService.convertToGrid(latitude, longitude);
 
@@ -116,7 +116,7 @@ describe('WeatherService', () => {
       mockedAxios.get.mockResolvedValue(mockResponse);
 
       const latitude = 37.5665;
-      const longitude = 126.9780;
+      const longitude = 126.978;
 
       const weather: WeatherData = await weatherService.getWeather(latitude, longitude);
 
@@ -132,7 +132,7 @@ describe('WeatherService', () => {
       mockedAxios.get.mockRejectedValue(new Error('API Error'));
 
       const latitude = 37.5665;
-      const longitude = 126.9780;
+      const longitude = 126.978;
 
       await expect(weatherService.getWeather(latitude, longitude)).rejects.toThrow();
     });
@@ -157,7 +157,7 @@ describe('WeatherService', () => {
       mockedAxios.get.mockResolvedValue(mockResponse);
 
       const latitude = 37.5665;
-      const longitude = 126.9780;
+      const longitude = 126.978;
 
       await expect(weatherService.getWeather(latitude, longitude)).rejects.toThrow();
     });
@@ -181,4 +181,3 @@ describe('WeatherService', () => {
     });
   });
 });
-

@@ -189,7 +189,7 @@ describe('Error Handler Middleware', () => {
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
       expect(loggerErrorSpy).toHaveBeenCalled();
-      
+
       loggerErrorSpy.mockRestore();
     });
   });

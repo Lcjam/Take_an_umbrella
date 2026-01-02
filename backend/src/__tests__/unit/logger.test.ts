@@ -19,26 +19,26 @@ describe('Logger Utility', () => {
   describe('Logging Levels', () => {
     test('error 레벨 로그를 기록할 수 있어야 함', () => {
       const errorMessage = 'Test error message';
-      
+
       // 에러 발생 없이 호출 가능한지 확인
       expect(() => logger.error(errorMessage)).not.toThrow();
     });
 
     test('warn 레벨 로그를 기록할 수 있어야 함', () => {
       const warnMessage = 'Test warning message';
-      
+
       expect(() => logger.warn(warnMessage)).not.toThrow();
     });
 
     test('info 레벨 로그를 기록할 수 있어야 함', () => {
       const infoMessage = 'Test info message';
-      
+
       expect(() => logger.info(infoMessage)).not.toThrow();
     });
 
     test('debug 레벨 로그를 기록할 수 있어야 함', () => {
       const debugMessage = 'Test debug message';
-      
+
       expect(() => logger.debug(debugMessage)).not.toThrow();
     });
   });
@@ -68,4 +68,3 @@ describe('Logger Utility', () => {
     });
   });
 });
-
