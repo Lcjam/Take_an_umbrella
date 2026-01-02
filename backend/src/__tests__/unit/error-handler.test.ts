@@ -7,6 +7,7 @@ import {
   ExternalApiError,
 } from '../../types/errors';
 import { errorHandler } from '../../middlewares/error-handler';
+import { logger } from '../../utils/logger';
 
 describe('Error Handler Middleware', () => {
   let mockRequest: Partial<Request>;
@@ -180,14 +181,16 @@ describe('Error Handler Middleware', () => {
   });
 
   describe('Logging', () => {
-    test('should log error in console', () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    test('should log error using logger', () => {
+      const loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation(() => logger);
 
       const error = new ValidationError('Invalid input');
 
       errorHandler(error, mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(consoleErrorSpy).toHaveBeenCalled();
+      expect(loggerErrorSpy).toHaveBeenCalled();
+      
+      loggerErrorSpy.mockRestore();
     });
   });
 });
