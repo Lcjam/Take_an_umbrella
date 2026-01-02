@@ -71,8 +71,7 @@ export class WeatherService {
 
       // 현재 시간 기준으로 baseDate, baseTime 설정
       const now = new Date();
-      const baseDate = this.formatDate(now);
-      const baseTime = this.getBaseTime(now);
+      const { baseDate, baseTime } = this.getBaseDateTime(now);
 
       logger.info('Fetching weather data', {
         latitude,
@@ -143,6 +142,13 @@ export class WeatherService {
       throw new ExternalApiError('필수 날씨 데이터가 누락되었습니다', 'MISSING_DATA');
     }
 
+    // 날짜 파싱 (YYYYMMDD 형식을 안전하게 파싱)
+    const fcstDateStr = items[0].fcstDate;
+    const year = parseInt(fcstDateStr.substring(0, 4));
+    const month = parseInt(fcstDateStr.substring(4, 6)) - 1; // 월은 0부터 시작
+    const day = parseInt(fcstDateStr.substring(6, 8));
+    const forecastDate = new Date(year, month, day);
+
     return {
       temperature: parseFloat(dataMap['T1H']) || 0, // 기온
       humidity: parseInt(dataMap['REH']) || 0, // 습도
@@ -151,7 +157,7 @@ export class WeatherService {
       windSpeed: parseFloat(dataMap['WSD']) || 0, // 풍속
       skyCondition: this.formatSkyCondition(dataMap['SKY']), // 하늘 상태
       precipitationType: this.formatPrecipitationType(dataMap['PTY']), // 강수 형태
-      forecastDate: new Date(items[0].fcstDate),
+      forecastDate,
       forecastTime: items[0].fcstTime,
     };
   }
@@ -195,17 +201,27 @@ export class WeatherService {
   }
 
   /**
-   * 기상청 API의 base_time 계산
-   * 매시간 30분에 발표되므로, 현재 시간에서 적절한 base_time 선택
+   * 기상청 초단기예보 API의 base_date와 base_time 계산
+   * 초단기예보는 매시 45분에 발표되며, base_time은 정시(HH00) 형식
+   * 자정 처리를 포함하여 날짜와 시간을 함께 조정
    */
-  private getBaseTime(date: Date): string {
-    const hour = date.getHours();
-    const minute = date.getMinutes();
+  private getBaseDateTime(now: Date): { baseDate: string; baseTime: string } {
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
 
-    // 30분 이전이면 이전 시간의 데이터 사용
-    const baseHour = minute < 30 ? hour - 1 : hour;
-    const adjustedHour = baseHour < 0 ? 0 : baseHour;
+    // 기준 시간을 Date 객체로 생성 (자정 처리 자동화)
+    const baseDateTime = new Date(now);
 
-    return String(adjustedHour).padStart(2, '0') + '30';
+    // 45분 이전이면 이전 시간의 데이터 사용
+    if (currentMinute < 45) {
+      baseDateTime.setHours(currentHour - 1);
+    }
+    // 45분 이후면 현재 시간 데이터 사용 가능
+
+    const baseDate = this.formatDate(baseDateTime);
+    const baseHour = baseDateTime.getHours();
+    const baseTime = String(baseHour).padStart(2, '0') + '00';
+
+    return { baseDate, baseTime };
   }
 }

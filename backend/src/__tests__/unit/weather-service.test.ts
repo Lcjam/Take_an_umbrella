@@ -22,30 +22,38 @@ describe('WeatherService', () => {
   });
 
   describe('convertToGrid', () => {
-    test('위경도를 격자 좌표로 변환할 수 있어야 함', () => {
-      // 서울 시청 좌표
+    test('서울 시청 좌표를 정확하게 변환해야 함', () => {
+      // 서울 시청 좌표 (기상청 공식 예제)
       const latitude = 37.5665;
       const longitude = 126.978;
 
       const grid: GridCoordinate = weatherService.convertToGrid(latitude, longitude);
 
-      expect(grid).toBeDefined();
-      expect(grid.nx).toBeGreaterThan(0);
-      expect(grid.ny).toBeGreaterThan(0);
-      expect(Number.isInteger(grid.nx)).toBe(true);
-      expect(Number.isInteger(grid.ny)).toBe(true);
+      // 기상청 공식 문서 기준 정확한 값
+      expect(grid.nx).toBe(60);
+      expect(grid.ny).toBe(127);
     });
 
-    test('부산 좌표를 올바르게 변환해야 함', () => {
+    test('부산 시청 좌표를 정확하게 변환해야 함', () => {
       // 부산 시청 좌표
       const latitude = 35.1796;
       const longitude = 129.0756;
 
       const grid: GridCoordinate = weatherService.convertToGrid(latitude, longitude);
 
-      expect(grid).toBeDefined();
-      expect(grid.nx).toBeGreaterThan(0);
-      expect(grid.ny).toBeGreaterThan(0);
+      // 기상청 기준 부산 격자 좌표
+      expect(grid.nx).toBe(98);
+      expect(grid.ny).toBe(76);
+    });
+
+    test('변환된 좌표는 정수여야 함', () => {
+      const latitude = 37.5665;
+      const longitude = 126.978;
+
+      const grid: GridCoordinate = weatherService.convertToGrid(latitude, longitude);
+
+      expect(Number.isInteger(grid.nx)).toBe(true);
+      expect(Number.isInteger(grid.ny)).toBe(true);
     });
   });
 
