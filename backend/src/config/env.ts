@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // 프로젝트 루트의 .env 파일 로드
+// __dirname은 컴파일된 파일 위치 기준 (안정적)
+// src/config/env.ts -> ../../.env (프로젝트 루트)
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export const config = {
