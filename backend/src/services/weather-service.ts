@@ -81,10 +81,13 @@ export class WeatherService {
         baseTime,
       });
 
+      // API 키 디코딩 (공공데이터포털 API 키는 이미 인코딩된 상태로 제공됨)
+      const decodedApiKey = decodeURIComponent(this.API_KEY);
+
       // 기상청 API 호출
       const response = await axios.get<KmaApiResponse>(`${this.API_BASE_URL}/getUltraSrtFcst`, {
         params: {
-          serviceKey: this.API_KEY,
+          serviceKey: decodedApiKey,
           numOfRows: 60,
           pageNo: 1,
           dataType: 'JSON',
