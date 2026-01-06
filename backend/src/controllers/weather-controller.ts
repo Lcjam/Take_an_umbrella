@@ -16,14 +16,14 @@ export const getWeather = async (
   try {
     const { latitude, longitude } = req.query;
 
-    // 파라미터 검증
-    if (!latitude || !longitude) {
-      throw new ValidationError('latitude와 longitude 파라미터가 필요합니다');
+    // 파라미터 타입 및 존재 여부 검증 (배열도 처리)
+    if (typeof latitude !== 'string' || typeof longitude !== 'string') {
+      throw new ValidationError('latitude와 longitude 파라미터가 문자열 형태로 하나씩 필요합니다.');
     }
 
     // 숫자 변환 및 검증
-    const lat = parseFloat(latitude as string);
-    const lon = parseFloat(longitude as string);
+    const lat = parseFloat(latitude);
+    const lon = parseFloat(longitude);
 
     if (isNaN(lat) || isNaN(lon)) {
       throw new ValidationError('latitude와 longitude는 숫자여야 합니다');
