@@ -94,4 +94,3 @@ export interface GeoCoordinate {
   /** 경도 */
   longitude: number;
 }
-
