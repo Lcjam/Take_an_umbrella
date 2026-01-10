@@ -767,4 +767,146 @@ describe('Users API', () => {
       expect(response.body.error.code).toBe('NOT_FOUND');
     });
   });
+
+  describe('PATCH /api/users/:user_id/notification-enabled', () => {
+    it('알림을 비활성화해야 함', async () => {
+      // 먼저 사용자 생성
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-disable-notification',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      // 알림 비활성화
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-enabled`)
+        .send({
+          notification_enabled: false,
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.notification_enabled).toBe(false);
+      expect(response.body.message).toBe('Notification setting updated successfully');
+    });
+
+    it('알림을 활성화해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-enable-notification',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      // 먼저 비활성화
+      await request(app)
+        .patch(`/api/users/${userId}/notification-enabled`)
+        .send({
+          notification_enabled: false,
+        })
+        .expect(200);
+
+      // 다시 활성화
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-enabled`)
+        .send({
+          notification_enabled: true,
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.notification_enabled).toBe(true);
+    });
+
+    it('기본값은 true여야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-default-notification',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      // 위치 설정으로 UserSettings 생성 (기본값 확인용)
+      await request(app)
+        .patch(`/api/users/${userId}/location`)
+        .send({
+          latitude: 37.5665,
+          longitude: 126.978,
+        })
+        .expect(200);
+
+      // 알림 설정 조회 (활성화 상태 확인)
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-enabled`)
+        .send({
+          notification_enabled: true,
+        })
+        .expect(200);
+
+      expect(response.body.data.notification_enabled).toBe(true);
+    });
+
+    it('notification_enabled가 없으면 400 에러를 반환해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-no-enabled-value',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-enabled`)
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.message).toContain('notification_enabled is required');
+    });
+
+    it('notification_enabled가 boolean이 아니면 400 에러를 반환해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-invalid-enabled-type',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-enabled`)
+        .send({
+          notification_enabled: 'true', // 문자열 (잘못된 타입)
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.message).toContain('must be a boolean');
+    });
+
+    it('존재하지 않는 사용자는 404 에러를 반환해야 함', async () => {
+      const fakeUserId = '550e8400-e29b-41d4-a716-446655440000';
+
+      const response = await request(app)
+        .patch(`/api/users/${fakeUserId}/notification-enabled`)
+        .send({
+          notification_enabled: false,
+        })
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('NOT_FOUND');
+    });
+  });
 });

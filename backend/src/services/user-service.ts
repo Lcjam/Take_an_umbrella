@@ -43,6 +43,10 @@ export interface FcmTokenSettings {
   fcmToken: string | null;
 }
 
+export interface NotificationEnabledSettings {
+  notificationEnabled: boolean;
+}
+
 class UserService {
   /**
    * 사용자를 생성하거나 기존 사용자를 조회합니다
@@ -120,6 +124,18 @@ class UserService {
   }
 
   /**
+   * 사용자 존재 여부를 확인하고, 없으면 에러를 던집니다
+   * @param userId - 사용자 ID
+   * @throws AppError - 사용자가 존재하지 않으면 NOT_FOUND 에러
+   */
+  private async ensureUserExists(userId: string): Promise<void> {
+    const user = await this.getUserById(userId);
+    if (!user) {
+      throw new AppError('NOT_FOUND', 'User not found');
+    }
+  }
+
+  /**
    * 사용자 위치 정보를 업데이트합니다
    * @param userId - 사용자 ID
    * @param input - 위치 정보 입력 데이터
@@ -127,10 +143,7 @@ class UserService {
    */
   async updateUserLocation(userId: string, input: UpdateLocationInput): Promise<UserSettings> {
     // 사용자 존재 여부 확인
-    const user = await this.getUserById(userId);
-    if (!user) {
-      throw new AppError('NOT_FOUND', 'User not found');
-    }
+    await this.ensureUserExists(userId);
 
     // UserSettings가 없으면 생성, 있으면 업데이트
     const settings = await prisma.userSettings.upsert({
@@ -168,10 +181,7 @@ class UserService {
     input: UpdateNotificationTimeInput
   ): Promise<NotificationTimeSettings> {
     // 사용자 존재 여부 확인
-    const user = await this.getUserById(userId);
-    if (!user) {
-      throw new AppError('NOT_FOUND', 'User not found');
-    }
+    await this.ensureUserExists(userId);
 
     // 기존 설정 조회
     const currentSettings = await prisma.userSettings.findUnique({
@@ -228,10 +238,7 @@ class UserService {
    */
   async updateFcmToken(userId: string, fcmToken: string): Promise<FcmTokenSettings> {
     // 사용자 존재 여부 확인
-    const user = await this.getUserById(userId);
-    if (!user) {
-      throw new AppError('NOT_FOUND', 'User not found');
-    }
+    await this.ensureUserExists(userId);
 
     // UserSettings가 없으면 생성, 있으면 업데이트
     const settings = await prisma.userSettings.upsert({
@@ -258,10 +265,7 @@ class UserService {
    */
   async deleteFcmToken(userId: string): Promise<void> {
     // 사용자 존재 여부 확인
-    const user = await this.getUserById(userId);
-    if (!user) {
-      throw new AppError('NOT_FOUND', 'User not found');
-    }
+    await this.ensureUserExists(userId);
 
     // UserSettings가 있으면 fcmToken만 null로 업데이트 (멱등성 보장)
     await prisma.userSettings.updateMany({
@@ -270,6 +274,41 @@ class UserService {
         fcmToken: null,
       },
     });
+  }
+
+  /**
+   * 알림 활성화/비활성화를 설정합니다
+   * @param userId - 사용자 ID
+   * @param notificationEnabled - 알림 활성화 여부
+   * @returns 업데이트된 설정 정보
+   */
+  async updateNotificationEnabled(
+    userId: string,
+    notificationEnabled: boolean
+  ): Promise<NotificationEnabledSettings> {
+    // 사용자 존재 여부 확인
+    await this.ensureUserExists(userId);
+
+    const DEFAULT_DEPARTURE_TIME = '08:00:00';
+    const DEFAULT_NOTIFICATION_TIME = '07:30:00';
+
+    // UserSettings가 없으면 생성, 있으면 업데이트
+    const settings = await prisma.userSettings.upsert({
+      where: { userId },
+      update: {
+        notificationEnabled,
+      },
+      create: {
+        userId,
+        departureTime: DEFAULT_DEPARTURE_TIME,
+        notificationTime: DEFAULT_NOTIFICATION_TIME,
+        notificationEnabled,
+      },
+    });
+
+    return {
+      notificationEnabled: settings.notificationEnabled,
+    };
   }
 
   /**
