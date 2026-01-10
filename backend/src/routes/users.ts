@@ -42,4 +42,13 @@ router.post('/:user_id/fcm-token', userController.registerFcmToken.bind(userCont
  */
 router.delete('/:user_id/fcm-token', userController.deleteFcmToken.bind(userController));
 
+/**
+ * PATCH /api/users/:user_id/notification-enabled
+ * 알림 활성화/비활성화 설정
+ */
+router.patch(
+  '/:user_id/notification-enabled',
+  userController.updateNotificationEnabled.bind(userController)
+);
+
 export default router;

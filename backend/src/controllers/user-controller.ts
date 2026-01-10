@@ -257,6 +257,48 @@ class UserController {
       next(error);
     }
   }
+
+  /**
+   * PATCH /api/users/:user_id/notification-enabled
+   * 알림 활성화/비활성화를 설정합니다
+   */
+  async updateNotificationEnabled(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { user_id } = req.params;
+      const { notification_enabled } = req.body;
+
+      // UUID validation
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(user_id)) {
+        throw new AppError('VALIDATION_ERROR', 'Invalid user ID format');
+      }
+
+      // notification_enabled 필수 검증
+      if (notification_enabled === undefined || notification_enabled === null) {
+        throw new AppError('VALIDATION_ERROR', 'notification_enabled is required');
+      }
+
+      // boolean 타입 검증
+      if (typeof notification_enabled !== 'boolean') {
+        throw new AppError('VALIDATION_ERROR', 'notification_enabled must be a boolean');
+      }
+
+      const updatedSettings = await userService.updateNotificationEnabled(
+        user_id,
+        notification_enabled
+      );
+
+      res.status(200).json({
+        success: true,
+        data: {
+          notification_enabled: updatedSettings.notificationEnabled,
+        },
+        message: 'Notification setting updated successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new UserController();

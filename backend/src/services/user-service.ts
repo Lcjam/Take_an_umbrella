@@ -43,6 +43,10 @@ export interface FcmTokenSettings {
   fcmToken: string | null;
 }
 
+export interface NotificationEnabledSettings {
+  notificationEnabled: boolean;
+}
+
 class UserService {
   /**
    * 사용자를 생성하거나 기존 사용자를 조회합니다
@@ -270,6 +274,44 @@ class UserService {
         fcmToken: null,
       },
     });
+  }
+
+  /**
+   * 알림 활성화/비활성화를 설정합니다
+   * @param userId - 사용자 ID
+   * @param notificationEnabled - 알림 활성화 여부
+   * @returns 업데이트된 설정 정보
+   */
+  async updateNotificationEnabled(
+    userId: string,
+    notificationEnabled: boolean
+  ): Promise<NotificationEnabledSettings> {
+    // 사용자 존재 여부 확인
+    const user = await this.getUserById(userId);
+    if (!user) {
+      throw new AppError('NOT_FOUND', 'User not found');
+    }
+
+    const DEFAULT_DEPARTURE_TIME = '08:00:00';
+    const DEFAULT_NOTIFICATION_TIME = '07:30:00';
+
+    // UserSettings가 없으면 생성, 있으면 업데이트
+    const settings = await prisma.userSettings.upsert({
+      where: { userId },
+      update: {
+        notificationEnabled,
+      },
+      create: {
+        userId,
+        departureTime: DEFAULT_DEPARTURE_TIME,
+        notificationTime: DEFAULT_NOTIFICATION_TIME,
+        notificationEnabled,
+      },
+    });
+
+    return {
+      notificationEnabled: settings.notificationEnabled,
+    };
   }
 
   /**
