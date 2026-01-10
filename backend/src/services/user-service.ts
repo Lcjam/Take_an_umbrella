@@ -173,24 +173,23 @@ class UserService {
       throw new AppError('NOT_FOUND', 'User not found');
     }
 
-    // 기존 설정 조회 (부분 업데이트를 위해)
-    const existingSettings = await prisma.userSettings.findUnique({
+    // 기존 설정 조회
+    const currentSettings = await prisma.userSettings.findUnique({
       where: { userId },
     });
 
-    // 최종 상태 계산 (부분 업데이트 고려)
-    const finalDepartureTime = input.departureTime ?? existingSettings?.departureTime ?? '08:00:00';
-    const finalNotificationTime =
-      input.notificationTime ?? existingSettings?.notificationTime ?? '07:30:00';
+    const DEFAULT_DEPARTURE_TIME = '08:00:00';
+    const DEFAULT_NOTIFICATION_TIME = '07:30:00';
+
+    // 검증을 위해 최종적으로 설정될 시간 값을 결정합니다
+    const departureForValidation =
+      input.departureTime ?? currentSettings?.departureTime ?? DEFAULT_DEPARTURE_TIME;
+    const notificationForValidation =
+      input.notificationTime ?? currentSettings?.notificationTime ?? DEFAULT_NOTIFICATION_TIME;
 
     // 논리적 검증: notification_time < departure_time
-    const [dHour, dMin, dSec] = finalDepartureTime.split(':').map(Number);
-    const [nHour, nMin, nSec] = finalNotificationTime.split(':').map(Number);
-
-    const dTotalSeconds = dHour * 3600 + dMin * 60 + dSec;
-    const nTotalSeconds = nHour * 3600 + nMin * 60 + nSec;
-
-    if (nTotalSeconds >= dTotalSeconds) {
+    // HH:mm:ss 형식은 사전식 순서가 시간 순서와 동일하므로 문자열 비교 가능
+    if (notificationForValidation >= departureForValidation) {
       throw new AppError('VALIDATION_ERROR', 'notification_time must be before departure_time');
     }
 
@@ -209,8 +208,8 @@ class UserService {
       update: updateData,
       create: {
         userId,
-        departureTime: finalDepartureTime,
-        notificationTime: finalNotificationTime,
+        departureTime: input.departureTime ?? DEFAULT_DEPARTURE_TIME,
+        notificationTime: input.notificationTime ?? DEFAULT_NOTIFICATION_TIME,
       },
     });
 
