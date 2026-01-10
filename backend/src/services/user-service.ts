@@ -22,10 +22,21 @@ export interface UpdateLocationInput {
   locationName: string | null;
 }
 
+export interface UpdateNotificationTimeInput {
+  departureTime?: string;
+  notificationTime?: string;
+}
+
 export interface UserSettings {
   locationLatitude: Prisma.Decimal | null;
   locationLongitude: Prisma.Decimal | null;
   locationName: string | null;
+}
+
+export interface NotificationTimeSettings {
+  userId: string;
+  departureTime: string;
+  notificationTime: string;
 }
 
 class UserService {
@@ -139,6 +150,49 @@ class UserService {
       locationLatitude: settings.locationLatitude,
       locationLongitude: settings.locationLongitude,
       locationName: settings.locationName,
+    };
+  }
+
+  /**
+   * 사용자 알림 시간 정보를 업데이트합니다
+   * @param userId - 사용자 ID
+   * @param input - 알림 시간 입력 데이터
+   * @returns 업데이트된 설정 정보
+   */
+  async updateNotificationTime(
+    userId: string,
+    input: UpdateNotificationTimeInput
+  ): Promise<NotificationTimeSettings> {
+    // 사용자 존재 여부 확인
+    const user = await this.getUserById(userId);
+    if (!user) {
+      throw new AppError('NOT_FOUND', 'User not found');
+    }
+
+    // update 데이터 준비 (제공된 필드만 업데이트)
+    const updateData: { departureTime?: string; notificationTime?: string } = {};
+    if (input.departureTime !== undefined) {
+      updateData.departureTime = input.departureTime;
+    }
+    if (input.notificationTime !== undefined) {
+      updateData.notificationTime = input.notificationTime;
+    }
+
+    // UserSettings가 없으면 생성, 있으면 업데이트
+    const settings = await prisma.userSettings.upsert({
+      where: { userId },
+      update: updateData,
+      create: {
+        userId,
+        departureTime: input.departureTime || '08:00:00', // 기본값
+        notificationTime: input.notificationTime || '07:30:00', // 기본값
+      },
+    });
+
+    return {
+      userId: settings.userId,
+      departureTime: settings.departureTime,
+      notificationTime: settings.notificationTime,
     };
   }
 

@@ -351,4 +351,234 @@ describe('Users API', () => {
       expect(response.body.error.code).toBe('NOT_FOUND');
     });
   });
+
+  describe('PATCH /api/users/:user_id/notification-time', () => {
+    it('알림 시간을 설정해야 함', async () => {
+      // 먼저 사용자 생성
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-for-notification',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      // 알림 시간 설정
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({
+          departure_time: '08:30:00',
+          notification_time: '08:00:00',
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.departure_time).toBe('08:30:00');
+      expect(response.body.data.notification_time).toBe('08:00:00');
+      expect(response.body.message).toBe('Notification time updated successfully');
+    });
+
+    it('알림 시간을 업데이트해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-update-notification',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      // 초기 설정
+      await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({
+          departure_time: '08:00:00',
+          notification_time: '07:30:00',
+        })
+        .expect(200);
+
+      // 업데이트
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({
+          departure_time: '09:00:00',
+          notification_time: '08:30:00',
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.departure_time).toBe('09:00:00');
+      expect(response.body.data.notification_time).toBe('08:30:00');
+    });
+
+    it('departure_time만 업데이트해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-departure-only',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      // 초기 설정
+      await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({
+          departure_time: '08:00:00',
+          notification_time: '07:30:00',
+        })
+        .expect(200);
+
+      // departure_time만 업데이트
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({
+          departure_time: '09:00:00',
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.departure_time).toBe('09:00:00');
+      expect(response.body.data.notification_time).toBe('07:30:00'); // 이전 값 유지
+    });
+
+    it('notification_time만 업데이트해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-notification-only',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      // 초기 설정
+      await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({
+          departure_time: '08:00:00',
+          notification_time: '07:30:00',
+        })
+        .expect(200);
+
+      // notification_time만 업데이트
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({
+          notification_time: '07:00:00',
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.departure_time).toBe('08:00:00'); // 이전 값 유지
+      expect(response.body.data.notification_time).toBe('07:00:00');
+    });
+
+    it('잘못된 시간 형식이면 400 에러를 반환해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-invalid-format',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({
+          departure_time: '25:00:00', // 잘못된 시간
+          notification_time: '07:30:00',
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.message).toContain('Invalid time format');
+    });
+
+    it('HH:mm:ss 형식이 아니면 400 에러를 반환해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-wrong-format',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({
+          departure_time: '08:30', // HH:mm만 있음
+          notification_time: '07:30:00',
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('알림 시간이 출발 시간 이후면 400 에러를 반환해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-time-order',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({
+          departure_time: '08:00:00',
+          notification_time: '08:30:00', // 출발 시간 이후
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.message).toContain(
+        'notification_time must be before departure_time'
+      );
+    });
+
+    it('두 값 모두 없으면 400 에러를 반환해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-no-values',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      const response = await request(app)
+        .patch(`/api/users/${userId}/notification-time`)
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.message).toContain('At least one time field is required');
+    });
+
+    it('존재하지 않는 사용자는 404 에러를 반환해야 함', async () => {
+      const fakeUserId = '550e8400-e29b-41d4-a716-446655440000';
+
+      const response = await request(app)
+        .patch(`/api/users/${fakeUserId}/notification-time`)
+        .send({
+          departure_time: '08:00:00',
+          notification_time: '07:30:00',
+        })
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('NOT_FOUND');
+    });
+  });
 });
