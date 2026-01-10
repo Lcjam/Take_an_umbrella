@@ -1,4 +1,6 @@
 import prisma from '../lib/prisma';
+import { AppError } from '../types/errors';
+import { Prisma } from '@prisma/client';
 
 export interface CreateUserInput {
   deviceId: string;
@@ -12,6 +14,18 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   lastActiveAt: Date | null;
+}
+
+export interface UpdateLocationInput {
+  latitude: number;
+  longitude: number;
+  locationName: string | null;
+}
+
+export interface UserSettings {
+  locationLatitude: Prisma.Decimal | null;
+  locationLongitude: Prisma.Decimal | null;
+  locationName: string | null;
 }
 
 class UserService {
@@ -88,6 +102,44 @@ class UserService {
     });
 
     return user ? this.mapToUser(user) : null;
+  }
+
+  /**
+   * 사용자 위치 정보를 업데이트합니다
+   * @param userId - 사용자 ID
+   * @param input - 위치 정보 입력 데이터
+   * @returns 업데이트된 설정 정보
+   */
+  async updateUserLocation(userId: string, input: UpdateLocationInput): Promise<UserSettings> {
+    // 사용자 존재 여부 확인
+    const user = await this.getUserById(userId);
+    if (!user) {
+      throw new AppError('NOT_FOUND', 'User not found');
+    }
+
+    // UserSettings가 없으면 생성, 있으면 업데이트
+    const settings = await prisma.userSettings.upsert({
+      where: { userId },
+      update: {
+        locationLatitude: new Prisma.Decimal(input.latitude),
+        locationLongitude: new Prisma.Decimal(input.longitude),
+        locationName: input.locationName,
+      },
+      create: {
+        userId,
+        departureTime: '08:00:00', // 기본값
+        notificationTime: '07:30:00', // 기본값
+        locationLatitude: new Prisma.Decimal(input.latitude),
+        locationLongitude: new Prisma.Decimal(input.longitude),
+        locationName: input.locationName,
+      },
+    });
+
+    return {
+      locationLatitude: settings.locationLatitude,
+      locationLongitude: settings.locationLongitude,
+      locationName: settings.locationName,
+    };
   }
 
   /**

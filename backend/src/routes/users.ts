@@ -15,4 +15,10 @@ router.post('/', userController.createOrGetUser.bind(userController));
  */
 router.get('/:user_id', userController.getUser.bind(userController));
 
+/**
+ * PATCH /api/users/:user_id/location
+ * 사용자 위치 정보 설정/업데이트
+ */
+router.patch('/:user_id/location', userController.updateLocation.bind(userController));
+
 export default router;
