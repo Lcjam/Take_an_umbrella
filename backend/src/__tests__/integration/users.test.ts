@@ -581,4 +581,190 @@ describe('Users API', () => {
       expect(response.body.error.code).toBe('NOT_FOUND');
     });
   });
+
+  describe('POST /api/users/:user_id/fcm-token', () => {
+    it('FCM 토큰을 등록해야 함', async () => {
+      // 먼저 사용자 생성
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-for-fcm',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      // FCM 토큰 등록
+      const response = await request(app)
+        .post(`/api/users/${userId}/fcm-token`)
+        .send({
+          fcm_token: 'test-fcm-token-123456',
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.fcm_token).toBe('test-fcm-token-123456');
+      expect(response.body.message).toBe('FCM token registered successfully');
+    });
+
+    it('FCM 토큰을 갱신해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-fcm-update',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      // 초기 토큰 등록
+      await request(app)
+        .post(`/api/users/${userId}/fcm-token`)
+        .send({
+          fcm_token: 'old-fcm-token',
+        })
+        .expect(200);
+
+      // 토큰 갱신
+      const response = await request(app)
+        .post(`/api/users/${userId}/fcm-token`)
+        .send({
+          fcm_token: 'new-fcm-token',
+        })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.fcm_token).toBe('new-fcm-token');
+    });
+
+    it('fcm_token이 없으면 400 에러를 반환해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-no-token',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      const response = await request(app)
+        .post(`/api/users/${userId}/fcm-token`)
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.message).toContain('fcm_token is required');
+    });
+
+    it('fcm_token이 빈 문자열이면 400 에러를 반환해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-empty-token',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      const response = await request(app)
+        .post(`/api/users/${userId}/fcm-token`)
+        .send({
+          fcm_token: '',
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.message).toContain('fcm_token is required');
+    });
+
+    it('fcm_token이 문자열이 아니면 400 에러를 반환해야 함', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-invalid-token-type',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      const response = await request(app)
+        .post(`/api/users/${userId}/fcm-token`)
+        .send({
+          fcm_token: 12345,
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('존재하지 않는 사용자는 404 에러를 반환해야 함', async () => {
+      const fakeUserId = '550e8400-e29b-41d4-a716-446655440000';
+
+      const response = await request(app)
+        .post(`/api/users/${fakeUserId}/fcm-token`)
+        .send({
+          fcm_token: 'test-fcm-token',
+        })
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('NOT_FOUND');
+    });
+  });
+
+  describe('DELETE /api/users/:user_id/fcm-token', () => {
+    it('FCM 토큰을 삭제해야 함', async () => {
+      // 먼저 사용자 생성 및 토큰 등록
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-delete-token',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      await request(app)
+        .post(`/api/users/${userId}/fcm-token`)
+        .send({
+          fcm_token: 'token-to-delete',
+        })
+        .expect(200);
+
+      // 토큰 삭제
+      const response = await request(app).delete(`/api/users/${userId}/fcm-token`).expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('FCM token deleted successfully');
+    });
+
+    it('토큰이 없어도 삭제 성공을 반환해야 함 (멱등성)', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-no-token-delete',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      // 토큰 등록 없이 바로 삭제
+      const response = await request(app).delete(`/api/users/${userId}/fcm-token`).expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.message).toBe('FCM token deleted successfully');
+    });
+
+    it('존재하지 않는 사용자는 404 에러를 반환해야 함', async () => {
+      const fakeUserId = '550e8400-e29b-41d4-a716-446655440000';
+
+      const response = await request(app).delete(`/api/users/${fakeUserId}/fcm-token`).expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('NOT_FOUND');
+    });
+  });
 });

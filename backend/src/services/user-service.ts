@@ -39,6 +39,10 @@ export interface NotificationTimeSettings {
   notificationTime: string;
 }
 
+export interface FcmTokenSettings {
+  fcmToken: string | null;
+}
+
 class UserService {
   /**
    * 사용자를 생성하거나 기존 사용자를 조회합니다
@@ -169,6 +173,26 @@ class UserService {
       throw new AppError('NOT_FOUND', 'User not found');
     }
 
+    // 기존 설정 조회
+    const currentSettings = await prisma.userSettings.findUnique({
+      where: { userId },
+    });
+
+    const DEFAULT_DEPARTURE_TIME = '08:00:00';
+    const DEFAULT_NOTIFICATION_TIME = '07:30:00';
+
+    // 검증을 위해 최종적으로 설정될 시간 값을 결정합니다
+    const departureForValidation =
+      input.departureTime ?? currentSettings?.departureTime ?? DEFAULT_DEPARTURE_TIME;
+    const notificationForValidation =
+      input.notificationTime ?? currentSettings?.notificationTime ?? DEFAULT_NOTIFICATION_TIME;
+
+    // 논리적 검증: notification_time < departure_time
+    // HH:mm:ss 형식은 사전식 순서가 시간 순서와 동일하므로 문자열 비교 가능
+    if (notificationForValidation >= departureForValidation) {
+      throw new AppError('VALIDATION_ERROR', 'notification_time must be before departure_time');
+    }
+
     // update 데이터 준비 (제공된 필드만 업데이트)
     const updateData: { departureTime?: string; notificationTime?: string } = {};
     if (input.departureTime !== undefined) {
@@ -184,8 +208,8 @@ class UserService {
       update: updateData,
       create: {
         userId,
-        departureTime: input.departureTime || '08:00:00', // 기본값
-        notificationTime: input.notificationTime || '07:30:00', // 기본값
+        departureTime: input.departureTime ?? DEFAULT_DEPARTURE_TIME,
+        notificationTime: input.notificationTime ?? DEFAULT_NOTIFICATION_TIME,
       },
     });
 
@@ -194,6 +218,58 @@ class UserService {
       departureTime: settings.departureTime,
       notificationTime: settings.notificationTime,
     };
+  }
+
+  /**
+   * FCM 토큰을 등록/갱신합니다
+   * @param userId - 사용자 ID
+   * @param fcmToken - FCM 토큰
+   * @returns 업데이트된 설정 정보
+   */
+  async updateFcmToken(userId: string, fcmToken: string): Promise<FcmTokenSettings> {
+    // 사용자 존재 여부 확인
+    const user = await this.getUserById(userId);
+    if (!user) {
+      throw new AppError('NOT_FOUND', 'User not found');
+    }
+
+    // UserSettings가 없으면 생성, 있으면 업데이트
+    const settings = await prisma.userSettings.upsert({
+      where: { userId },
+      update: {
+        fcmToken,
+      },
+      create: {
+        userId,
+        departureTime: '08:00:00', // 기본값
+        notificationTime: '07:30:00', // 기본값
+        fcmToken,
+      },
+    });
+
+    return {
+      fcmToken: settings.fcmToken,
+    };
+  }
+
+  /**
+   * FCM 토큰을 삭제합니다
+   * @param userId - 사용자 ID
+   */
+  async deleteFcmToken(userId: string): Promise<void> {
+    // 사용자 존재 여부 확인
+    const user = await this.getUserById(userId);
+    if (!user) {
+      throw new AppError('NOT_FOUND', 'User not found');
+    }
+
+    // UserSettings가 있으면 fcmToken만 null로 업데이트 (멱등성 보장)
+    await prisma.userSettings.updateMany({
+      where: { userId },
+      data: {
+        fcmToken: null,
+      },
+    });
   }
 
   /**

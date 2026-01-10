@@ -30,4 +30,16 @@ router.patch(
   userController.updateNotificationTime.bind(userController)
 );
 
+/**
+ * POST /api/users/:user_id/fcm-token
+ * FCM 토큰 등록/갱신
+ */
+router.post('/:user_id/fcm-token', userController.registerFcmToken.bind(userController));
+
+/**
+ * DELETE /api/users/:user_id/fcm-token
+ * FCM 토큰 삭제
+ */
+router.delete('/:user_id/fcm-token', userController.deleteFcmToken.bind(userController));
+
 export default router;
