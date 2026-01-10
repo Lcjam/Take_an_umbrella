@@ -179,19 +179,7 @@ class UserController {
         }
       }
 
-      // 두 값이 모두 제공된 경우 notification_time이 departure_time보다 이전인지 확인
-      if (departure_time !== undefined && notification_time !== undefined) {
-        const [dHour, dMin, dSec] = departure_time.split(':').map(Number);
-        const [nHour, nMin, nSec] = notification_time.split(':').map(Number);
-
-        const dTotalSeconds = dHour * 3600 + dMin * 60 + dSec;
-        const nTotalSeconds = nHour * 3600 + nMin * 60 + nSec;
-
-        if (nTotalSeconds >= dTotalSeconds) {
-          throw new AppError('VALIDATION_ERROR', 'notification_time must be before departure_time');
-        }
-      }
-
+      // 논리적 검증은 서비스 레이어에서 수행 (최종 상태 기반)
       const updatedSettings = await userService.updateNotificationTime(user_id, {
         departureTime: departure_time,
         notificationTime: notification_time,
@@ -205,6 +193,65 @@ class UserController {
           notification_time: updatedSettings.notificationTime,
         },
         message: 'Notification time updated successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/users/:user_id/fcm-token
+   * FCM 토큰을 등록/갱신합니다
+   */
+  async registerFcmToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { user_id } = req.params;
+      const { fcm_token } = req.body;
+
+      // UUID validation
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(user_id)) {
+        throw new AppError('VALIDATION_ERROR', 'Invalid user ID format');
+      }
+
+      // FCM 토큰 검증
+      if (!fcm_token || typeof fcm_token !== 'string' || fcm_token.trim() === '') {
+        throw new AppError('VALIDATION_ERROR', 'fcm_token is required');
+      }
+
+      const updatedSettings = await userService.updateFcmToken(user_id, fcm_token.trim());
+
+      res.status(200).json({
+        success: true,
+        data: {
+          fcm_token: updatedSettings.fcmToken,
+        },
+        message: 'FCM token registered successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * DELETE /api/users/:user_id/fcm-token
+   * FCM 토큰을 삭제합니다
+   */
+  async deleteFcmToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { user_id } = req.params;
+
+      // UUID validation
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(user_id)) {
+        throw new AppError('VALIDATION_ERROR', 'Invalid user ID format');
+      }
+
+      await userService.deleteFcmToken(user_id);
+
+      res.status(200).json({
+        success: true,
+        message: 'FCM token deleted successfully',
       });
     } catch (error) {
       next(error);
