@@ -21,4 +21,13 @@ router.get('/:user_id', userController.getUser.bind(userController));
  */
 router.patch('/:user_id/location', userController.updateLocation.bind(userController));
 
+/**
+ * PATCH /api/users/:user_id/notification-time
+ * 사용자 알림 시간 설정/업데이트
+ */
+router.patch(
+  '/:user_id/notification-time',
+  userController.updateNotificationTime.bind(userController)
+);
+
 export default router;
