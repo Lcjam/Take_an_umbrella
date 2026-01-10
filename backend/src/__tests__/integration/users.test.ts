@@ -313,6 +313,29 @@ describe('Users API', () => {
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
     });
 
+    it('부분적으로만 숫자인 값이면 400 에러를 반환해야 함 (parseFloat 부분 파싱 방지)', async () => {
+      const createResponse = await request(app)
+        .post('/api/users')
+        .send({
+          device_id: 'test-device-partial-number',
+        })
+        .expect(201);
+
+      const userId = createResponse.body.data.user_id;
+
+      const response = await request(app)
+        .patch(`/api/users/${userId}/location`)
+        .send({
+          latitude: '37.5abc',
+          longitude: 126.978,
+        })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.error.code).toBe('VALIDATION_ERROR');
+      expect(response.body.error.message).toContain('must be numbers');
+    });
+
     it('존재하지 않는 사용자는 404 에러를 반환해야 함', async () => {
       const fakeUserId = '550e8400-e29b-41d4-a716-446655440000';
 

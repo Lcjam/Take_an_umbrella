@@ -102,8 +102,8 @@ class UserController {
       }
 
       // 숫자 변환 및 검증
-      const lat = parseFloat(latitude);
-      const lon = parseFloat(longitude);
+      const lat = Number(latitude);
+      const lon = Number(longitude);
 
       if (isNaN(lat) || isNaN(lon)) {
         throw new AppError('VALIDATION_ERROR', 'latitude and longitude must be numbers');
