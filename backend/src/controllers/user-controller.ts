@@ -49,12 +49,6 @@ class UserController {
     try {
       const { user_id } = req.params;
 
-      // UUID validation
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(user_id)) {
-        throw new AppError('VALIDATION_ERROR', 'Invalid user ID format');
-      }
-
       const user = await userService.getUserById(user_id);
 
       if (!user) {
@@ -85,12 +79,6 @@ class UserController {
     try {
       const { user_id } = req.params;
       const { latitude, longitude, location_name } = req.body;
-
-      // UUID validation
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(user_id)) {
-        throw new AppError('VALIDATION_ERROR', 'Invalid user ID format');
-      }
 
       // latitude와 longitude 필수 검증
       if (latitude === undefined || latitude === null) {
@@ -147,12 +135,6 @@ class UserController {
       const { user_id } = req.params;
       const { departure_time, notification_time } = req.body;
 
-      // UUID validation
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(user_id)) {
-        throw new AppError('VALIDATION_ERROR', 'Invalid user ID format');
-      }
-
       // 최소 하나의 필드는 제공되어야 함
       if (departure_time === undefined && notification_time === undefined) {
         throw new AppError('VALIDATION_ERROR', 'At least one time field is required');
@@ -208,12 +190,6 @@ class UserController {
       const { user_id } = req.params;
       const { fcm_token } = req.body;
 
-      // UUID validation
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(user_id)) {
-        throw new AppError('VALIDATION_ERROR', 'Invalid user ID format');
-      }
-
       // FCM 토큰 검증
       if (!fcm_token || typeof fcm_token !== 'string' || fcm_token.trim() === '') {
         throw new AppError('VALIDATION_ERROR', 'fcm_token is required');
@@ -241,12 +217,6 @@ class UserController {
     try {
       const { user_id } = req.params;
 
-      // UUID validation
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(user_id)) {
-        throw new AppError('VALIDATION_ERROR', 'Invalid user ID format');
-      }
-
       await userService.deleteFcmToken(user_id);
 
       res.status(200).json({
@@ -266,12 +236,6 @@ class UserController {
     try {
       const { user_id } = req.params;
       const { notification_enabled } = req.body;
-
-      // UUID validation
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-      if (!uuidRegex.test(user_id)) {
-        throw new AppError('VALIDATION_ERROR', 'Invalid user ID format');
-      }
 
       // notification_enabled 필수 검증
       if (notification_enabled === undefined || notification_enabled === null) {
