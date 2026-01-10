@@ -76,6 +76,67 @@ class UserController {
       next(error);
     }
   }
+
+  /**
+   * PATCH /api/users/:user_id/location
+   * 사용자 위치 정보를 설정/업데이트합니다
+   */
+  async updateLocation(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { user_id } = req.params;
+      const { latitude, longitude, location_name } = req.body;
+
+      // UUID validation
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(user_id)) {
+        throw new AppError('VALIDATION_ERROR', 'Invalid user ID format');
+      }
+
+      // latitude와 longitude 필수 검증
+      if (latitude === undefined || latitude === null) {
+        throw new AppError('VALIDATION_ERROR', 'latitude is required');
+      }
+
+      if (longitude === undefined || longitude === null) {
+        throw new AppError('VALIDATION_ERROR', 'longitude is required');
+      }
+
+      // 숫자 변환 및 검증
+      const lat = Number(latitude);
+      const lon = Number(longitude);
+
+      if (isNaN(lat) || isNaN(lon)) {
+        throw new AppError('VALIDATION_ERROR', 'latitude and longitude must be numbers');
+      }
+
+      // 범위 검증 (위도: -90 ~ 90, 경도: -180 ~ 180)
+      if (lat < -90 || lat > 90) {
+        throw new AppError('VALIDATION_ERROR', 'latitude must be between -90 and 90');
+      }
+
+      if (lon < -180 || lon > 180) {
+        throw new AppError('VALIDATION_ERROR', 'longitude must be between -180 and 180');
+      }
+
+      const updatedSettings = await userService.updateUserLocation(user_id, {
+        latitude: lat,
+        longitude: lon,
+        locationName: location_name || null,
+      });
+
+      res.status(200).json({
+        success: true,
+        data: {
+          location_latitude: updatedSettings.locationLatitude?.toString() ?? null,
+          location_longitude: updatedSettings.locationLongitude?.toString() ?? null,
+          location_name: updatedSettings.locationName,
+        },
+        message: 'Location updated successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new UserController();
