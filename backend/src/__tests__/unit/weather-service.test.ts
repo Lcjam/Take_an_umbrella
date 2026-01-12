@@ -1,6 +1,7 @@
 import { WeatherService } from '../../services/weather-service';
 import { WeatherData, GridCoordinate } from '../../types/weather';
 import axios from 'axios';
+import { RedisClient } from '../../lib/redis';
 
 // axios 모킹
 jest.mock('axios');
@@ -9,9 +10,23 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 describe('WeatherService', () => {
   let weatherService: WeatherService;
 
-  beforeEach(() => {
+  beforeAll(async () => {
+    // Redis 연결 확인
+    const redis = RedisClient.getInstance();
+    await redis.ping();
+  });
+
+  beforeEach(async () => {
     weatherService = new WeatherService();
     jest.clearAllMocks();
+
+    // 테스트 전에 캐시 초기화
+    const redis = RedisClient.getInstance();
+    await redis.flushdb();
+  });
+
+  afterAll(async () => {
+    await RedisClient.disconnect();
   });
 
   describe('Constructor', () => {
@@ -186,6 +201,111 @@ describe('WeatherService', () => {
       expect(weatherService.formatPrecipitationType('2')).toBe('비/눈');
       expect(weatherService.formatPrecipitationType('3')).toBe('눈');
       expect(weatherService.formatPrecipitationType('4')).toBe('소나기');
+    });
+  });
+
+  describe('캐싱 (Caching)', () => {
+    const mockResponse = {
+      data: {
+        response: {
+          header: {
+            resultCode: '00',
+            resultMsg: 'NORMAL_SERVICE',
+          },
+          body: {
+            dataType: 'JSON',
+            items: {
+              item: [
+                {
+                  baseDate: '20260102',
+                  baseTime: '2300',
+                  category: 'T1H',
+                  fcstDate: '20260102',
+                  fcstTime: '2300',
+                  fcstValue: '5',
+                  nx: 60,
+                  ny: 127,
+                },
+                {
+                  baseDate: '20260102',
+                  baseTime: '2300',
+                  category: 'REH',
+                  fcstDate: '20260102',
+                  fcstTime: '2300',
+                  fcstValue: '70',
+                  nx: 60,
+                  ny: 127,
+                },
+                {
+                  baseDate: '20260102',
+                  baseTime: '2300',
+                  category: 'PTY',
+                  fcstDate: '20260102',
+                  fcstTime: '2300',
+                  fcstValue: '0',
+                  nx: 60,
+                  ny: 127,
+                },
+                {
+                  baseDate: '20260102',
+                  baseTime: '2300',
+                  category: 'SKY',
+                  fcstDate: '20260102',
+                  fcstTime: '2300',
+                  fcstValue: '1',
+                  nx: 60,
+                  ny: 127,
+                },
+              ],
+            },
+            pageNo: 1,
+            numOfRows: 10,
+            totalCount: 4,
+          },
+        },
+      },
+    };
+
+    test('첫 번째 호출은 API를 호출하고 캐시에 저장해야 함', async () => {
+      mockedAxios.get.mockResolvedValue(mockResponse);
+
+      const latitude = 37.5665;
+      const longitude = 126.978;
+
+      const weather = await weatherService.getWeather(latitude, longitude);
+
+      expect(weather).toBeDefined();
+      expect(weather.temperature).toBe(5);
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+    });
+
+    test('같은 좌표로 두 번째 호출 시 캐시에서 가져와야 함 (API 호출 안 함)', async () => {
+      mockedAxios.get.mockResolvedValue(mockResponse);
+
+      const latitude = 37.5665;
+      const longitude = 126.978;
+
+      // 첫 번째 호출
+      const weather1 = await weatherService.getWeather(latitude, longitude);
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+
+      // 두 번째 호출 (캐시에서 가져옴)
+      const weather2 = await weatherService.getWeather(latitude, longitude);
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1); // 여전히 1번만 호출됨
+
+      expect(weather1).toEqual(weather2);
+    });
+
+    test('다른 좌표는 캐시 미스가 되어 API를 다시 호출해야 함', async () => {
+      mockedAxios.get.mockResolvedValue(mockResponse);
+
+      // 서울
+      await weatherService.getWeather(37.5665, 126.978);
+      expect(mockedAxios.get).toHaveBeenCalledTimes(1);
+
+      // 부산 (다른 좌표)
+      await weatherService.getWeather(35.1796, 129.0756);
+      expect(mockedAxios.get).toHaveBeenCalledTimes(2); // 2번 호출됨
     });
   });
 });

@@ -3,6 +3,10 @@ import { config } from '../config/env';
 import { logger } from '../utils/logger';
 import { WeatherData, GridCoordinate, KmaApiResponse, KmaApiItem } from '../types/weather';
 import { ExternalApiError } from '../types/errors';
+import cacheService from '../utils/cache';
+
+// 캐시 TTL (5분)
+const WEATHER_CACHE_TTL = 300;
 
 /**
  * 날씨 서비스
@@ -62,10 +66,27 @@ export class WeatherService {
   }
 
   /**
-   * 날씨 데이터 조회
+   * 날씨 데이터 조회 (캐싱 적용)
    */
   public async getWeather(latitude: number, longitude: number): Promise<WeatherData> {
     try {
+      // 캐시 키 생성
+      const cacheKey = cacheService.generateKey('weather', {
+        lat: latitude,
+        lon: longitude,
+      });
+
+      // 캐시 확인
+      const cachedData = await cacheService.get<WeatherData>(cacheKey);
+      if (cachedData) {
+        logger.info('Weather data retrieved from cache', {
+          latitude,
+          longitude,
+          cacheKey,
+        });
+        return cachedData;
+      }
+
       // 위경도를 격자 좌표로 변환
       const grid = this.convertToGrid(latitude, longitude);
 
@@ -73,7 +94,7 @@ export class WeatherService {
       const now = new Date();
       const { baseDate, baseTime } = this.getBaseDateTime(now);
 
-      logger.info('Fetching weather data', {
+      logger.info('Fetching weather data from API', {
         latitude,
         longitude,
         grid,
@@ -114,7 +135,16 @@ export class WeatherService {
       }
 
       // 데이터 파싱
-      return this.parseWeatherData(items);
+      const weatherData = this.parseWeatherData(items);
+
+      // 캐시에 저장
+      await cacheService.set(cacheKey, weatherData, WEATHER_CACHE_TTL);
+      logger.info('Weather data cached', {
+        cacheKey,
+        ttl: WEATHER_CACHE_TTL,
+      });
+
+      return weatherData;
     } catch (error) {
       if (error instanceof ExternalApiError) {
         throw error;
@@ -160,7 +190,7 @@ export class WeatherService {
       windSpeed: parseFloat(dataMap['WSD']) || 0, // 풍속
       skyCondition: this.formatSkyCondition(dataMap['SKY']), // 하늘 상태
       precipitationType: this.formatPrecipitationType(dataMap['PTY']), // 강수 형태
-      forecastDate,
+      forecastDate: forecastDate.toISOString(), // ISO 8601 형식으로 변환
       forecastTime: items[0].fcstTime,
     };
   }

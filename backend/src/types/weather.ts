@@ -20,8 +20,8 @@ export interface WeatherData {
   skyCondition: string;
   /** 강수 형태 (없음, 비, 눈, 비/눈 등) */
   precipitationType: string;
-  /** 예보 날짜 */
-  forecastDate: Date;
+  /** 예보 날짜 (ISO 8601 형식) */
+  forecastDate: string;
   /** 예보 시간 */
   forecastTime: string;
 }

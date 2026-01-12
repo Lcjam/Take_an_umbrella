@@ -12,6 +12,7 @@ export const config = {
   weatherApiKey: process.env.WEATHER_API_KEY || '',
   weatherApiUrl: process.env.WEATHER_API_URL || '',
   databaseUrl: process.env.DATABASE_URL || '',
+  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   jwtSecret: process.env.JWT_SECRET || '',
   fcmServerKey: process.env.FCM_SERVER_KEY || '',
 };
