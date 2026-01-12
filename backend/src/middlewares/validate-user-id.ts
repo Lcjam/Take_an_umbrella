@@ -16,4 +16,3 @@ export const validateUserId = (req: Request, _res: Response, next: NextFunction)
 
   next();
 };
-
