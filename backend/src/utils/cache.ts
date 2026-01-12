@@ -77,18 +77,21 @@ export class CacheService {
   /**
    * 캐시 키를 생성합니다.
    * prefix와 params를 조합하여 일관된 키를 생성합니다.
+   * 파라미터를 JSON.stringify하여 키 충돌을 방지합니다.
    * @param prefix - 키 접두사 (예: 'weather', 'user')
    * @param params - 키 파라미터 (객체)
    * @returns 생성된 캐시 키
    */
   generateKey(prefix: string, params: Record<string, unknown>): string {
-    // params를 키로 정렬하여 순서에 관계없이 같은 키 생성
-    const sortedParams = Object.keys(params)
-      .sort()
-      .map(key => params[key])
-      .join(':');
+    // params를 키로 정렬한 후 JSON.stringify
+    // 이렇게 하면 값에 구분자(:)가 포함되어도 충돌이 발생하지 않음
+    const sortedKeys = Object.keys(params).sort();
+    const sortedParams: Record<string, unknown> = {};
+    sortedKeys.forEach(key => {
+      sortedParams[key] = params[key];
+    });
 
-    return `${prefix}:${sortedParams}`;
+    return `${prefix}:${JSON.stringify(sortedParams)}`;
   }
 }
 

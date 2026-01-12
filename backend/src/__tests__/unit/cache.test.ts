@@ -111,11 +111,11 @@ describe('CacheService', () => {
 
   describe('generateKey', () => {
     it('prefix와 params로 캐시 키를 생성해야 함', () => {
-      const key1 = cacheService.generateKey('weather', { lat: 37.5, lon: 127.0 });
-      expect(key1).toBe('weather:37.5:127'); // 127.0은 JavaScript에서 127로 변환됨
+      const key1 = cacheService.generateKey('weather', { lat: 37.5, lon: 127 });
+      expect(key1).toBe('weather:{"lat":37.5,"lon":127}');
 
       const key2 = cacheService.generateKey('user', { id: '123' });
-      expect(key2).toBe('user:123');
+      expect(key2).toBe('user:{"id":"123"}');
     });
 
     it('params의 순서가 달라도 같은 키를 생성해야 함', () => {
@@ -123,6 +123,21 @@ describe('CacheService', () => {
       const key2 = cacheService.generateKey('test', { b: '2', a: '1' });
 
       expect(key1).toBe(key2);
+    });
+
+    it('구분자(:)가 포함된 값으로 인한 키 충돌을 방지해야 함', () => {
+      const key1 = cacheService.generateKey('prefix', { a: '1:2', b: '3' });
+      const key2 = cacheService.generateKey('prefix', { a: '1', b: '2:3' });
+
+      // 현재 구현: key1 = 'prefix:1:2:3', key2 = 'prefix:1:2:3' (충돌!)
+      expect(key1).not.toBe(key2); // 다른 파라미터는 다른 키를 생성해야 함
+    });
+
+    it('특수 문자가 포함된 값도 안전하게 처리해야 함', () => {
+      const key1 = cacheService.generateKey('test', { lat: '37.5:127', lng: '0' });
+      const key2 = cacheService.generateKey('test', { lat: '37.5', lng: '127:0' });
+
+      expect(key1).not.toBe(key2);
     });
   });
 });
