@@ -15,4 +15,6 @@ export const config = {
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   jwtSecret: process.env.JWT_SECRET || '',
   fcmServerKey: process.env.FCM_SERVER_KEY || '',
+  // Firebase Admin SDK 서비스 계정 JSON (Base64 인코딩)
+  firebaseServiceAccount: process.env.FIREBASE_SERVICE_ACCOUNT || '',
 };
