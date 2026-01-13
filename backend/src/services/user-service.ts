@@ -337,13 +337,7 @@ export class UserService {
    * 알림 스케줄러에서 사용됩니다.
    * @returns 모든 사용자 목록
    */
-  async findAll(): Promise<
-    Array<
-      User & {
-        settings: UserSettings | null;
-      }
-    >
-  > {
+  async findAll() {
     const users = await prisma.user.findMany({
       include: {
         settings: true,
