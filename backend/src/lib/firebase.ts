@@ -29,14 +29,35 @@ class FirebaseAdmin {
 
           logger.info('Firebase Admin SDK initialized successfully');
         } else {
-          // 테스트 환경이나 개발 환경에서 Firebase가 필수가 아닌 경우
-          logger.warn('Firebase service account not configured. FCM features will be disabled.');
+          // 테스트 환경에서는 mock 인스턴스 생성
+          if (config.nodeEnv === 'test') {
+            logger.warn(
+              'Firebase service account not configured. Using mock instance for testing.'
+            );
+            FirebaseAdmin.instance = admin.initializeApp({
+              projectId: 'test-project-mock',
+            });
+            return FirebaseAdmin.instance;
+          }
+
+          // 프로덕션/개발 환경에서는 에러 발생
+          logger.error('Firebase service account not configured. FCM features will be disabled.');
           throw new Error('Firebase service account not configured');
         }
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error during Firebase initialization';
         logger.error('Failed to initialize Firebase Admin SDK', { error: errorMessage });
+
+        // 테스트 환경에서는 mock 인스턴스 반환
+        if (config.nodeEnv === 'test') {
+          logger.warn('Using mock Firebase instance for testing due to initialization error.');
+          FirebaseAdmin.instance = admin.initializeApp({
+            projectId: 'test-project-mock-fallback',
+          });
+          return FirebaseAdmin.instance;
+        }
+
         throw new Error(`Firebase initialization failed: ${errorMessage}`);
       }
     }
