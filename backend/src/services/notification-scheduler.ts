@@ -86,11 +86,17 @@ export class NotificationScheduler {
             continue;
           }
 
-          // 현재 시간과 알림 시간 비교 (HH:mm 형식, 한국 시간 기준 UTC+9)
+          // 현재 시간과 알림 시간 비교 (HH:mm 형식, 한국 시간 기준)
           const now = new Date();
-          // 한국 시간으로 변환 (UTC+9)
-          const koreaTime = new Date(now.getTime() + 9 * 60 * 60 * 1000);
-          const currentTime = `${String(koreaTime.getUTCHours()).padStart(2, '0')}:${String(koreaTime.getUTCMinutes()).padStart(2, '0')}`;
+          // 한국 시간으로 변환 (Asia/Seoul)
+          const currentTime = now
+            .toLocaleTimeString('ko-KR', {
+              timeZone: 'Asia/Seoul',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })
+            .replace(':', ':'); // "HH:mm" 형식
           const userNotificationTime = settings.notificationTime.substring(0, 5); // "HH:mm:ss" -> "HH:mm"
 
           // 알림 시간이 현재 시간과 다른 경우 건너뛰기
