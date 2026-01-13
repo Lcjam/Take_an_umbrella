@@ -75,6 +75,7 @@ export class NotificationScheduler {
 
           const settings = user.settings as unknown as {
             notificationEnabled: boolean;
+            notificationTime: string;
             fcmToken: string | null;
             locationLatitude: number | null;
             locationLongitude: number | null;
@@ -84,6 +85,24 @@ export class NotificationScheduler {
           if (!settings.notificationEnabled) {
             continue;
           }
+
+          // 현재 시간과 알림 시간 비교 (HH:mm 형식, 한국 시간 기준 UTC+9)
+          const now = new Date();
+          // 한국 시간으로 변환 (UTC+9)
+          const koreaTime = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+          const currentTime = `${String(koreaTime.getUTCHours()).padStart(2, '0')}:${String(koreaTime.getUTCMinutes()).padStart(2, '0')}`;
+          const userNotificationTime = settings.notificationTime.substring(0, 5); // "HH:mm:ss" -> "HH:mm"
+
+          // 알림 시간이 현재 시간과 다른 경우 건너뛰기
+          if (currentTime !== userNotificationTime) {
+            continue;
+          }
+
+          logger.debug('Sending notification to user at scheduled time', {
+            userId: user.id,
+            notificationTime: userNotificationTime,
+            currentTime,
+          });
 
           // FCM 토큰이 없는 경우 건너뛰기
           if (!settings.fcmToken) {
