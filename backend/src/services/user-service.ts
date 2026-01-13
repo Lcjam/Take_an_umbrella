@@ -47,7 +47,7 @@ export interface NotificationEnabledSettings {
   notificationEnabled: boolean;
 }
 
-class UserService {
+export class UserService {
   /**
    * 사용자를 생성하거나 기존 사용자를 조회합니다
    * 트랜잭션을 사용하여 원자성을 보장하고 race condition을 방지합니다
@@ -330,6 +330,27 @@ class UserService {
       updatedAt: user.updatedAt,
       lastActiveAt: user.lastActiveAt,
     };
+  }
+
+  /**
+   * 모든 사용자를 조회합니다 (settings 포함)
+   * 알림 스케줄러에서 사용됩니다.
+   * @returns 모든 사용자 목록
+   */
+  async findAll(): Promise<
+    Array<
+      User & {
+        settings: UserSettings | null;
+      }
+    >
+  > {
+    const users = await prisma.user.findMany({
+      include: {
+        settings: true,
+      },
+    });
+
+    return users;
   }
 }
 
