@@ -6,6 +6,8 @@ import { errorHandler } from './middlewares/error-handler';
 import usersRouter from './routes/users';
 import weatherRouter from './routes/weather';
 import { logger } from './utils/logger';
+import notificationScheduler from './services/notification-scheduler';
+import { RedisClient } from './lib/redis';
 
 // 프로젝트 루트의 .env 파일 로드 (backend 디렉토리에서 실행해도 루트의 .env 사용)
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -34,15 +36,38 @@ app.use(errorHandler);
 if (process.env.NODE_ENV !== 'test') {
   const server = app.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
+
+    // Start notification scheduler
+    notificationScheduler.start();
+    logger.info('Notification scheduler started');
   });
 
   // Graceful shutdown
-  process.on('SIGTERM', () => {
-    logger.info('SIGTERM signal received: closing HTTP server');
+  const shutdown = async () => {
+    logger.info('Shutdown signal received');
+
+    // Stop notification scheduler
+    notificationScheduler.stop();
+    logger.info('Notification scheduler stopped');
+
+    // Disconnect Redis
+    await RedisClient.disconnect();
+
+    // Close HTTP server
     server.close(() => {
       logger.info('HTTP server closed');
+      process.exit(0);
     });
-  });
+
+    // Force shutdown after 30 seconds
+    setTimeout(() => {
+      logger.error('Forced shutdown after timeout');
+      process.exit(1);
+    }, 30000);
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 export default app;

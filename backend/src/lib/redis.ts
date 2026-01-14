@@ -58,7 +58,23 @@ class RedisClient {
    */
   static async disconnect(): Promise<void> {
     if (RedisClient.instance) {
-      await RedisClient.instance.quit();
+      /**
+       * 테스트 환경/연결 시도 중에는 quit()이 대기하면서 Jest 종료를 막을 수 있습니다.
+       * - ready 상태면 정상 종료(quit)
+       * - 그 외(connecting/reconnecting 등)는 즉시 종료(disconnect) 우선
+       */
+      const client = RedisClient.instance;
+      const status = (client as unknown as { status?: string }).status;
+
+      if (typeof (client as unknown as { disconnect?: () => void }).disconnect === 'function') {
+        if (status && status !== 'ready') {
+          (client as unknown as { disconnect: () => void }).disconnect();
+        } else {
+          await client.quit();
+        }
+      } else {
+        await client.quit();
+      }
       RedisClient.instance = null;
       logger.info('Redis disconnected');
     }
