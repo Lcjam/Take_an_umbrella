@@ -87,6 +87,20 @@ describe('NotificationScheduler', () => {
   });
 
   describe('sendNotifications', () => {
+    /**
+     * NotificationScheduler는 "현재 시간(Asia/Seoul) === user.notificationTime(HH:mm)" 인 사용자만 처리합니다.
+     * 따라서 단위 테스트에서는 시간을 고정해서(08:30 KST) 결정적으로 테스트합니다.
+     */
+    beforeEach(() => {
+      jest.useFakeTimers();
+      // 08:30 KST == 23:30 UTC (전날)
+      jest.setSystemTime(new Date('2026-01-13T23:30:00.000Z'));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     const mockUsers = [
       {
         id: 'user-1',
@@ -121,7 +135,8 @@ describe('NotificationScheduler', () => {
           locationLongitude: 129.0756,
           locationName: '부산',
           departureTime: '08:00',
-          notificationTime: '07:30',
+          // 동일한 실행(08:30 KST)에서 두 사용자 모두 발송되도록 동일 시간으로 맞춤
+          notificationTime: '08:30',
           fcmToken: 'token-2',
           notificationEnabled: true,
           createdAt: new Date(),
